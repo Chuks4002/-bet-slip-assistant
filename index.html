@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bet Slip Assistant V1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b1020;color:#f5f7ff}
+.wrap{max-width:760px;margin:auto;padding:18px}.card{background:#141b31;border:1px solid #273252;border-radius:18px;padding:16px;margin:12px 0}
+h1{font-size:27px;margin:4px 0 6px}.muted{color:#9ca8c7}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:12px;color:#aeb8d3;display:block;margin-bottom:5px}input,select,textarea{width:100%;padding:12px;border-radius:11px;border:1px solid #34405f;background:#0e1528;color:#fff;font-size:15px}
+button{border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:#6d7cff;color:white;margin:5px 3px 0 0}
+button.secondary{background:#273252}.danger{background:#8d3547}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#263251;font-size:12px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid #273252}.row:last-child{border-bottom:0}
+.small{font-size:13px}.odds{font-weight:800}.status{cursor:pointer}.summary{font-size:18px;font-weight:800}.good{color:#7ee2a8}.warn{color:#ffd479}
+pre{white-space:pre-wrap;word-break:break-word;background:#0e1528;padding:12px;border-radius:12px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}button{width:100%;margin-right:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+<h1>🎯 Bet Slip Assistant</h1>
+<div class="muted">V1 — build, validate and prepare slips. You review and place the wager.</div>
+</div>
+
+<div class="card">
+<div class="grid">
+<div><label>Target multiplier</label><input id="target" type="number" step="0.1" value="30"></div>
+<div><label>Stake (₦)</label><input id="stake" type="number" step="1" value="100"></div>
+</div>
+<div style="margin-top:10px"><label>Bookmaker</label>
+<select id="book"><option>SportyBet Nigeria</option><option>Bet9ja</option><option>Other</option></select></div>
+</div>
+
+<div class="card">
+<h3>Add selection</h3>
+<div class="grid">
+<div><label>Sport</label><input id="sport" placeholder="Basketball"></div>
+<div><label>Event</label><input id="event" placeholder="Team A vs Team B"></div>
+<div><label>Market</label><input id="market" placeholder="Total Points"></div>
+<div><label>Pick</label><input id="pick" placeholder="Over 151.5"></div>
+<div><label>Odds</label><input id="odds" type="number" step="0.01" placeholder="1.30"></div>
+<div><label>Start time (optional)</label><input id="start" type="datetime-local"></div>
+</div>
+<button onclick="add()">Add selection</button>
+<button class="secondary" onclick="loadJSON()">Import JSON</button>
+<button class="secondary" onclick="copyJSON()">Copy JSON</button>
+</div>
+
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h3 style="margin:0">Selections</h3><span class="pill" id="count">0</span>
+</div>
+<div id="list" class="small muted" style="margin-top:8px">No selections yet.</div>
+</div>
+
+<div class="card">
+<div class="summary">Combined odds: <span id="total">1.00×</span></div>
+<div class="summary">Potential return: <span id="ret">₦0</span></div>
+<div id="gap" class="muted" style="margin-top:6px"></div>
+<button onclick="copySlip()">Copy ready-to-enter slip</button>
+<button class="secondary" onclick="openBook()">Open bookmaker</button>
+<button class="danger" onclick="clearAll()">Clear slip</button>
+</div>
+
+<div class="card">
+<h3>Pre-place checklist</h3>
+<div class="small">
+☐ Every event is still scheduled<br>
+☐ Every market/pick is available at the bookmaker<br>
+☐ Odds have not materially changed<br>
+☐ No duplicate event/selection<br>
+☐ Stake is correct<br>
+☐ Final slip has been personally reviewed
+</div>
+</div>
+
+<div class="card">
+<h3>Import format</h3>
+<pre>[
+  {"sport":"Basketball","event":"Team A vs Team B","market":"Total Points","pick":"Over 151.5","odds":1.30},
+  {"sport":"Football","event":"Team C vs Team D","market":"Double Chance","pick":"1X","odds":1.28}
+]</pre>
+</div>
+</div>
+
+<script>
+let picks=JSON.parse(localStorage.getItem("betPicks")||"[]");
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem("betPicks",JSON.stringify(picks));render();}
+function add(){
+ const p={sport:$("sport").value.trim(),event:$("event").value.trim(),market:$("market").value.trim(),pick:$("pick").value.trim(),odds:Number($("odds").value),start:$("start").value};
+ if(!p.event||!p.pick||!p.odds||p.odds<1){alert("Enter event, pick and valid odds.");return}
+ picks.push(p);["sport","event","market","pick","odds","start"].forEach(x=>$(x).value="");save();
+}
+function render(){
+ $("count").textContent=picks.length;
+ if(!picks.length){$("list").innerHTML="No selections yet.";$("total").textContent="1.00×";$("ret").textContent="₦0";$("gap").textContent="";return}
+ let total=picks.reduce((a,p)=>a*p.odds,1);
+ $("total").textContent=total.toFixed(2)+"×";
+ let stake=Number($("stake").value)||0;
+ $("ret").textContent="₦"+(stake*total).toLocaleString("en-NG",{maximumFractionDigits:2});
+ let target=Number($("target").value)||0;
+ $("gap").innerHTML=target? (total>=target?'<span class="good">Target reached.</span>':'Need about '+(target/total).toFixed(2)+'× more.'):"";
+ $("list").innerHTML=picks.map((p,i)=>`<div class="row">
+<div><b>${i+1}. ${esc(p.event)}</b><br><span class="muted">${esc(p.sport)} · ${esc(p.market)} · ${esc(p.pick)}</span></div>
+<div><span class="odds">${p.odds.toFixed(2)}×</span><br><button class="danger small" onclick="removePick(${i})">Remove</button></div></div>`).join("");
+}
+function removePick(i){picks.splice(i,1);save()}
+function clearAll(){if(confirm("Clear this slip?")){picks=[];save()}}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function slipText(){
+ let total=picks.reduce((a,p)=>a*p.odds,1), stake=Number($("stake").value)||0;
+ return `BET SLIP ASSISTANT\nBookmaker: ${$("book").value}\nTarget: ${$("target").value}×\nCombined odds: ${total.toFixed(2)}×\nStake: ₦${stake}\nPotential return: ₦${(stake*total).toLocaleString("en-NG",{maximumFractionDigits:2})}\n\n`+
+ picks.map((p,i)=>`${i+1}. ${p.sport} — ${p.event}\n   ${p.market}: ${p.pick} @ ${p.odds}`).join("\n");
+}
+async function copySlip(){await navigator.clipboard.writeText(slipText());alert("Slip copied.");}
+async function copyJSON(){await navigator.clipboard.writeText(JSON.stringify(picks,null,2));alert("JSON copied.");}
+function loadJSON(){
+ let s=prompt("Paste selection JSON:");
+ if(!s)return; try{let x=JSON.parse(s);if(!Array.isArray(x))throw 0;picks=x.map(p=>({...p,odds:Number(p.odds)}));save()}catch(e){alert("Invalid JSON.")}}
+function openBook(){window.open("https://www.sportybet.com/ng/","_blank")}
+$("stake").oninput=render;$("target").oninput=render;render();
+</script>
+</body>
+</html>
