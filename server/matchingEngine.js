@@ -52,7 +52,7 @@ function norm(s) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9.+-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -109,8 +109,40 @@ function marketScore(req, m) {
 
   if (a === b) return 1;
 
-  if (b.includes(a) || a.includes(b))
+  if (
+    a.includes("point spread") &&
+    !b.includes("point spread")
+  ) {
+    return 0;
+  }
+
+  if (
+    a.includes("asian handicap") &&
+    !b.includes("asian handicap")
+  ) {
+    return 0;
+  }
+
+  if (
+    a === "spread" &&
+    b.includes("asian handicap")
+  ) {
+    return 0;
+  }
+
+  if (
+    a === "handicap" &&
+    b.includes("point spread")
+  ) {
+    return 0;
+  }
+
+  if (
+    b.includes(a) ||
+    a.includes(b)
+  ) {
     return 0.90;
+  }
 
   const aliases = {
     "match winner": [
@@ -138,25 +170,6 @@ function marketScore(req, m) {
     "draw no bet": [
       "draw no bet",
       "dnb"
-    ],
-
-    "point spread": [
-      "point spread",
-      "spread",
-      "handicap",
-      "asian handicap"
-    ],
-
-    spread: [
-      "point spread",
-      "spread",
-      "handicap"
-    ],
-
-    handicap: [
-      "point spread",
-      "spread",
-      "handicap"
     ]
   };
 
@@ -178,15 +191,23 @@ function outcomeScore(req, d) {
 
   if (a === b) return 1;
 
-  if (a && b && (b.includes(a) || a.includes(b)))
+  if (
+    a &&
+    b &&
+    (b.includes(a) || a.includes(b))
+  ) {
     return 0.95;
+  }
 
   return ov(a, b);
 }
 
 export function chooseEvent(req, candidates) {
   const r = candidates
-    .map(e => ({ ...e, _score: eventScore(req, e) }))
+    .map(e => ({
+      ...e,
+      _score: eventScore(req, e)
+    }))
     .sort((a, b) => b._score - a._score);
 
   if (!r.length || r[0]._score < 0.35) {
@@ -212,33 +233,45 @@ function lineFromPick(p) {
 export function chooseMarket(req, markets, pick) {
   const line = lineFromPick(pick);
 
-  const r = (markets || [])
+  const ranked = (markets || [])
     .map(m => {
       let score = marketScore(
         req,
         m.desc || m.name || ""
       );
 
-      const spec = String(m.specifier || "");
+      const spec = String(
+        m.specifier || ""
+      );
 
-      if (line && spec.includes(line)) {
+      if (
+        line &&
+        spec &&
+        spec.includes(line)
+      ) {
         score += 0.20;
       }
 
-      return { ...m, _score: score };
+      return {
+        ...m,
+        _score: score
+      };
     })
     .sort((a, b) => b._score - a._score);
 
-  if (!r[0] || r[0]._score < 0.40) {
+  if (
+    !ranked[0] ||
+    ranked[0]._score < 0.40
+  ) {
     return {
       status: "UNAVAILABLE",
-      candidates: r.slice(0, 5)
+      candidates: ranked.slice(0, 5)
     };
   }
 
   return {
     status: "FOUND",
-    market: r[0]
+    market: ranked[0]
   };
 }
 
@@ -250,7 +283,10 @@ export function chooseOutcome(
   const wanted = norm(req);
 
   const exact = outcomes.find(o => {
-    const d = norm(o.desc || o.name || "");
+    const d = norm(
+      o.desc || o.name || ""
+    );
+
     return d === wanted;
   });
 
@@ -262,8 +298,13 @@ export function chooseOutcome(
   }
 
   if (event) {
-    const home = norm(event.homeTeamName);
-    const away = norm(event.awayTeamName);
+    const home = norm(
+      event.homeTeamName
+    );
+
+    const away = norm(
+      event.awayTeamName
+    );
 
     const wantsHome =
       wanted.includes(home) ||
@@ -274,13 +315,17 @@ export function chooseOutcome(
       away.includes(wanted);
 
     for (const o of outcomes) {
-      const d = norm(o.desc || o.name || "");
+      const d = norm(
+        o.desc || o.name || ""
+      );
 
       if (
         wantsHome &&
-        (d === "home" ||
+        (
+          d === "home" ||
           d === "1" ||
-          d === "team 1")
+          d === "team 1"
+        )
       ) {
         return {
           status: "FOUND",
@@ -290,9 +335,11 @@ export function chooseOutcome(
 
       if (
         wantsAway &&
-        (d === "away" ||
+        (
+          d === "away" ||
           d === "2" ||
-          d === "team 2")
+          d === "team 2"
+        )
       ) {
         return {
           status: "FOUND",
@@ -312,7 +359,10 @@ export function chooseOutcome(
     }))
     .sort((a, b) => b._score - a._score);
 
-  if (!ranked[0] || ranked[0]._score < 0.25) {
+  if (
+    !ranked[0] ||
+    ranked[0]._score < 0.25
+  ) {
     return {
       status: "UNAVAILABLE",
       candidates: ranked.slice(0, 5)
@@ -328,3 +378,4 @@ export function chooseOutcome(
 export function sportId(s) {
   return SPORT_IDS[norm(s)] || null;
 }
+
