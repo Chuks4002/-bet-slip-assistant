@@ -8,4 +8,4 @@ export default{name:"SportyBet Live",async validateSelection(s,dbg){try{if(start
 export async function searchEvents(sport,dbg){return upcoming(sport,dbg)}
 export async function getEventDetails(eventId,sport,dbg){const all=await upcoming(sport,dbg);return all.find(e=>e.eventId===eventId)||null}
 export function findMarket(requested,markets,pick){return chooseMarket(requested,markets,pick)}
-export function findOutcome(pick,outcomes){return chooseOutcome(pick,outcomes)}\n
+export function findOutcome(pick,outcomes){return chooseOutcome(pick,outcomes)}
