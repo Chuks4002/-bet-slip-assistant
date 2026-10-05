@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
-import { validateSelection, health } from "./server/sportybet-server.js";
+import {
+  validateSelection,
+  buildBooking,
+  health
+} from "./server/sportybet-server.js";
 
 const app = express();
 app.use(cors());
