@@ -98,10 +98,12 @@ export async function validateSelection(selection) {
       };
     }
 
-    const outcomeMatch = chooseOutcome(
-      selection.pick,
-      marketMatch.market.outcomes || []
-    );
+    const outcomeMatch =
+  chooseOutcome(
+    selection.pick,
+    market.outcomes,
+    event
+  );
 
     if (outcomeMatch.status !== "FOUND") {
       return {
