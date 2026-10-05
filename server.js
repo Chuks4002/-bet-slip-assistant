@@ -7,27 +7,30 @@ import {
 } from "./server/sportybet-server.js";
 
 const app = express();
-app.use(cors());
-app.use(express.json({limit:"1mb"}));
 
-app.get("/api/health", async (_req,res)=>{
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+
+app.get("/api/health", async (_req, res) => {
   res.json(await health());
 });
 
-app.post("/api/validate", async (req,res)=>{
+app.post("/api/validate", async (req, res) => {
   const selections = req.body?.selections || [];
   const results = [];
-  for (const s of selections){
+
+  for (const s of selections) {
     results.push(await validateSelection(s));
   }
-  res.json({results});
+
+  res.json({ results });
 });
 
 app.post("/api/build", async (req, res) => {
   try {
-    const selections = req.body?.selections || [];
-
-    const result = await buildBooking(selections);
+    const result = await buildBooking(
+      req.body?.selections || []
+    );
 
     res.json(result);
   } catch (e) {
@@ -38,12 +41,11 @@ app.post("/api/build", async (req, res) => {
   }
 });
 
-/* ADD THIS BLOCK */
-
 app.get("/api/test-sportybet", async (_req, res) => {
   try {
     const r = await fetch(
-      "https://www.sportybet.com/api/ng/factsCenter/pcUpcomingEvents?sportId=sr:sport:1&marketId=1&pageSize=1&pageNum=1&todayGames=false&timeline=24&_t=" + Date.now(),
+      "https://www.sportybet.com/api/ng/factsCenter/pcUpcomingEvents?sportId=sr:sport:1&marketId=1&pageSize=1&pageNum=1&todayGames=false&timeline=24&_t=" +
+        Date.now(),
       {
         headers: {
           Accept: "application/json",
@@ -67,7 +69,8 @@ app.get("/api/test-sportybet", async (_req, res) => {
   }
 });
 
-/* END OF BLOCK */
-
 const port = process.env.PORT || 3000;
-app.listen(port, ()=>console.log("Bet Slip Assistant backend on", port));
+
+app.listen(port, () =>
+  console.log("Bet Slip Assistant backend on", port)
+);
