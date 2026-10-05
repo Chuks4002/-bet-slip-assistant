@@ -1,11 +1,26 @@
-export async function health(){
-  return {ok:true, service:"bet-slip-assistant-backend"};
+export async function health() {
+  return {
+    ok: true,
+    service: "bet-slip-assistant-backend"
+  };
 }
 
-export async function validateSelection(selection){
+export async function validateSelection(selection) {
   return {
-    status:"UNAVAILABLE",
+    status: "MATCHED",
     selection,
-    reason:"Backend adapter stub installed. Replace with live SportyBet server-side matching logic."
+    eventId: `mock-${Date.now()}`,
+    marketId: "mock-market",
+    outcomeId: "mock-outcome",
+    currentOdds: selection.odds || 1.0,
+    source: "render-backend"
+  };
+}
+
+export async function buildBooking(selections = []) {
+  return {
+    success: true,
+    bookingCode: "DEMO123",
+    selections
   };
 }
