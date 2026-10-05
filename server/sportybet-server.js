@@ -144,12 +144,69 @@ export async function validateSelection(selection) {
   }
 }
 
-export async function buildBooking() {
-  return {
-    success: false,
-    message:
-      "Booking generation not implemented yet."
-  };
+export async function buildBooking(results = []) {
+  try {
+    const selections = results
+      .filter(
+        r =>
+          r.status === "MATCHED" ||
+          r.status === "ODDS_CHANGED"
+      )
+      .map(r => ({
+        eventId: r.eventId,
+        marketId: String(r.marketId),
+        outcomeId: String(r.outcomeId)
+      }));
+
+    if (!selections.length) {
+      return {
+        success: false,
+        message: "No valid selections."
+      };
+    }
+
+    const response = await fetch(
+      "https://www.sportybet.com/api/ng/orders/share?throwInvalidEvent=1",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "Current-Country": "NG"
+        },
+        body: JSON.stringify({
+          loadingShareCode: "",
+          selections
+        })
+      }
+    );
+
+    const body = await response.json();
+
+    if (
+      body?.bizCode !== 10000 ||
+      !body?.data?.shareCode
+    ) {
+      return {
+        success: false,
+        message: "SportyBet rejected booking.",
+        response: body
+      };
+    }
+
+    return {
+      success: true,
+      bookingCode: body.data.shareCode,
+      shareUrl: body.data.shareURL,
+      deadline: body.data.deadline,
+      outcomes: body.data.outcomes || []
+    };
+  } catch (e) {
+    return {
+      success: false,
+      message: e.message
+    };
+  }
 }
 
 
