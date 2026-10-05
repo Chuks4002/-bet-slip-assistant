@@ -23,11 +23,19 @@ app.post("/api/validate", async (req,res)=>{
   res.json({results});
 });
 
-app.post("/api/build", async (req,res)=>{
-  res.json({
-    success:false,
-    message:"Booking/share code generation must be verified against currently accessible public SportyBet interfaces before enabling."
-  });
+app.post("/api/build", async (req, res) => {
+  try {
+    const selections = req.body?.selections || [];
+
+    const result = await buildBooking(selections);
+
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({
+      success: false,
+      message: e.message
+    });
+  }
 });
 
 /* ADD THIS BLOCK */
