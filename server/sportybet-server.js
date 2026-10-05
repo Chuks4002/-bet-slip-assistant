@@ -151,21 +151,22 @@ export async function validateSelection(selection) {
 export async function buildBooking(results = []) {
   try {
     const selections = results
-      .filter(
-        r =>
-          r.eventId &&
-          r.marketId &&
-          r.outcomeId
-      )
-      .map(r => ({
-        estimateStartTime: r.estimateStartTime,
-        eventId: r.eventId,
-        marketId: String(r.marketId),
-        outcomeId: String(r.outcomeId),
-        parentBetBuilderMarketId:
-          r.parentBetBuilderMarketId || "",
-        sportId: r.sportId
-      }));
+  .filter(
+    r =>
+      r.eventId &&
+      r.marketId &&
+      r.outcomeId
+  )
+  .map(r => ({
+    eventId: r.eventId,
+    marketId: String(r.marketId),
+    outcomeId: String(r.outcomeId),
+
+    estimateStartTime: r.estimateStartTime || null,
+    sportId: r.sportId || "sr:sport:1",
+    parentBetBuilderMarketId:
+      r.parentBetBuilderMarketId || ""
+  }));
 
     if (!selections.length) {
       return {
