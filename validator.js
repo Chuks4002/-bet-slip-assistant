@@ -1,0 +1,1 @@
+export function validate(results){return {total:results.length,matched:results.filter(x=>x.status==='MATCHED').length};}
