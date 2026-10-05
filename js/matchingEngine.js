@@ -96,7 +96,85 @@ function toks(s){return norm(s).split(" ").filter(x=>x&&!STOP.has(x))}
 function ov(a,b){const A=new Set(toks(a)),B=new Set(toks(b));if(!A.size||!B.size)return 0;let n=0;for(const x of A)if(B.has(x))n++;return n/Math.max(A.size,B.size)}
 function sides(s){const p=String(s||"").split(/\s+(?:vs\.?|v\.?|versus)\s+|\s+[-–—]\s+/i);return p.length===2?p:["",s]}
 export function eventScore(req,e){const [rh,ra]=sides(req);const direct=(ov(rh,e.homeTeamName)+ov(ra,e.awayTeamName))/2;const reverse=(ov(rh,e.awayTeamName)+ov(ra,e.homeTeamName))/2;return Math.max(direct,reverse*.97,ov(req,String(e.homeTeamName)+" vs "+String(e.awayTeamName))*.85)}
-function marketScore(req,m,pick){const a=norm(req),b=norm(m);if(a===b)return 1;if(b.includes(a)||a.includes(b))return .88;const aliases={"match winner":["match winner","winner","moneyline"],"double chance":["double chance"],"total goals":["total goals","over under"],"both teams to score":["both teams to score","btts"],"draw no bet":["draw no bet","dnb"]};for(const k in aliases)if(aliases[k].some(v=>norm(v)===a)&&aliases[k].some(v=>b.includes(norm(v))))return .86;return 0}
+function marketScore(req,m,pick){const a=norm(req),b=norm(m);if(a===b)return 1;if(b.includes(a)||a.includes(b))return .88;const aliases = {
+  "match winner": [
+    "match winner",
+    "winner",
+    "winner incl overtime",
+    "winner incl. overtime",
+    "moneyline",
+    "money line",
+    "to win match",
+    "home away",
+    "1x2"
+  ],
+
+  "double chance": [
+    "double chance"
+  ],
+
+  "draw no bet": [
+    "draw no bet",
+    "dnb"
+  ],
+
+  "total goals": [
+    "total goals",
+    "over under",
+    "over/under",
+    "totals"
+  ],
+
+  "both teams to score": [
+    "both teams to score",
+    "btts",
+    "gg/ng",
+    "goal goal"
+  ],
+
+  "point spread": [
+    "spread",
+    "point spread",
+    "handicap",
+    "asian handicap",
+    "puck line"
+  ],
+
+  "handicap": [
+    "handicap",
+    "asian handicap",
+    "spread",
+    "point spread"
+  ],
+
+  "team total": [
+    "team total",
+    "team totals",
+    "team total points",
+    "team total goals"
+  ],
+
+  "correct score": [
+    "correct score"
+  ],
+
+  "odd even": [
+    "odd even",
+    "odd/even"
+  ],
+
+  "first half winner": [
+    "1st half winner",
+    "first half winner",
+    "1st half 1x2"
+  ],
+
+  "first half over under": [
+    "1st half over under",
+    "1st half total",
+    "first half total goals"
+  ]
+};for(const k in aliases)if(aliases[k].some(v=>norm(v)===a)&&aliases[k].some(v=>b.includes(norm(v))))return .86;return 0}
 function outcomeScore(req,d){const a=norm(req),b=norm(d);if(a===b)return 1;if(a&&b&&(b.includes(a)||a.includes(b)))return .9;return ov(a,b)}
 export function chooseEvent(req,candidates){const r=candidates.map(e=>({...e,_score:eventScore(req,e)})).sort((a,b)=>b._score-a._score);if(!r.length||r[0]._score<.42)return{status:"NOT_FOUND",candidates:r.slice(0,3)};if(r[1]&&r[0]._score-r[1]._score<.06)return{status:"AMBIGUOUS",candidates:r.slice(0,3)};return{status:"FOUND",event:r[0]}}
 function lineFromPick(p){const m=String(p||"").match(/(?:over|under|exactly|at least|below)?\s*(\d+(?:\.\d+)?)/i);return m?m[1]:null}
