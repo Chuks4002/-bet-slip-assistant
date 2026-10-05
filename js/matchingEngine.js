@@ -1,4 +1,95 @@
-const SPORT_IDS={football:"sr:sport:1",basketball:"sr:sport:2",tennis:"sr:sport:5",handball:"sr:sport:6",volleyball:"sr:sport:23",baseball:"sr:sport:3","ice hockey":"sr:sport:4"};
+const SPORT_IDS = {
+  football: "sr:sport:1",
+  soccer: "sr:sport:1",
+
+  basketball: "sr:sport:2",
+  baseball: "sr:sport:3",
+  "ice hockey": "sr:sport:4",
+  icehockey: "sr:sport:4",
+
+  tennis: "sr:sport:5",
+  handball: "sr:sport:6",
+
+  golf: "sr:sport:9",
+  boxing: "sr:sport:10",
+
+  motorsport: "sr:sport:11",
+  "motor sport": "sr:sport:11",
+
+  rugby: "sr:sport:12",
+
+  aussierules: "sr:sport:13",
+  "aussie rules": "sr:sport:13",
+
+  bandy: "sr:sport:15",
+
+  americanfootball: "sr:sport:16",
+  "american football": "sr:sport:16",
+  nfl: "sr:sport:16",
+
+  cycling: "sr:sport:17",
+
+  snooker: "sr:sport:19",
+  "table tennis": "sr:sport:20",
+  tabletennis: "sr:sport:20",
+
+  cricket: "sr:sport:21",
+  darts: "sr:sport:22",
+
+  volleyball: "sr:sport:23",
+
+  "field hockey": "sr:sport:24",
+  fieldhockey: "sr:sport:24",
+
+  pool: "sr:sport:25",
+  waterpolo: "sr:sport:26",
+  "water polo": "sr:sport:26",
+
+  futsal: "sr:sport:29",
+  badminton: "sr:sport:31",
+
+  chess: "sr:sport:33",
+
+  "beach volleyball": "sr:sport:34",
+  beachvolleyball: "sr:sport:34",
+
+  squash: "sr:sport:37",
+
+  lacrosse: "sr:sport:39",
+
+  softball: "sr:sport:54",
+
+  "beach soccer": "sr:sport:60",
+  beachsoccer: "sr:sport:60",
+
+  esport: "sr:sport:107",
+  esports: "sr:sport:107",
+
+  "counter strike": "sr:sport:109",
+  csgo: "sr:sport:109",
+  cs2: "sr:sport:109",
+
+  lol: "sr:sport:110",
+  "league of legends": "sr:sport:110",
+
+  dota2: "sr:sport:111",
+  dota: "sr:sport:111",
+
+  mma: "sr:sport:117",
+
+  "call of duty": "sr:sport:118",
+
+  overwatch: "sr:sport:121",
+
+  "rainbow six": "sr:sport:125",
+
+  "rocket league": "sr:sport:128",
+
+  valorant: "sr:sport:194",
+
+  "basketball 3x3": "sr:sport:155",
+  basketball3x3: "sr:sport:155"
+};
 const STOP=new Set(["fc","cf","club","the","men","women","team","ac","sc"]);
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim()}
 function toks(s){return norm(s).split(" ").filter(x=>x&&!STOP.has(x))}
