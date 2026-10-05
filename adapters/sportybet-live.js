@@ -1,12 +1,77 @@
-import{chooseEvent,chooseMarket,chooseOutcome,sportId}from"../js/matchingEngine.js";
-const BASE="https://www.sportybet.com",HEAD={"Accept":"application/json","Content-Type":"application/json","Current-Country":"NG"},MARKETS="1,18,10,29,11,26,36,14,60100",TIMEOUT=15000;
-async function req(url,opt,dbg){const c=new AbortController(),tm=setTimeout(()=>c.abort(),TIMEOUT);try{dbg&&dbg({type:"request",method:opt?.method||"GET",url});const r=await fetch(url,{...(opt||{}),headers:{...HEAD,...(opt?.headers||{})},mode:"cors",signal:c.signal});const txt=await r.text();let body;try{body=JSON.parse(txt)}catch{body={raw:txt}}dbg&&dbg({type:"response",status:r.status,ok:r.ok,body});if(!r.ok)throw Error("HTTP_"+r.status);return body}catch(e){dbg&&dbg({type:"error",error:e.name==="AbortError"?"timeout":e.message});if(e instanceof TypeError)throw Error("CORS_OR_NETWORK");throw e}finally{clearTimeout(tm)}}
-async function upcoming(sport,dbg){const id=sportId(sport);if(!id)throw Error("UNSUPPORTED_SPORT");const events=[];for(let page=1;page<=3;page++){const q=new URLSearchParams({sportId:id,marketId:MARKETS,pageSize:"100",pageNum:String(page),todayGames:"false",timeline:"720",_t:String(Date.now())});const b=await req(BASE+"/api/ng/factsCenter/pcUpcomingEvents?"+q.toString(),{},dbg);if(b?.bizCode!==10000)throw Error("SPORTYBET_SEARCH_FAILED");for(const t of b?.data?.tournaments||[])for(const e of t?.events||[])events.push({...e,tournamentName:t.name,categoryName:t.categoryName});if((b?.data?.events?.length||0)<100&&(tournamentsCount(b)<100))break}return[...new Map(events.map(e=>[e.eventId,e])).values()]}
-function tournamentsCount(b){let n=0;for(const t of b?.data?.tournaments||[])n+=(t.events||[]).length;return n}
-function started(e){const n=Number(e.estimateStartTime||e.startTime||0);return n>0&&((n<1e12?n*1000:n)<=Date.now())}
-function startedInput(s){const v=s?.startTime;if(!v)return false;const n=Number(v);const t=Number.isFinite(n)?(n<1e12?n*1000:n):Date.parse(v);return Number.isFinite(t)&&t>0&&t<=Date.now()}
-export default{name:"SportyBet Live",async validateSelection(s,dbg){try{if(startedInput(s))return{status:"STARTED",selection:s,reason:"Supplied start time is in the past."};const c=await upcoming(s.sport,dbg),pick=chooseEvent(s.event,c);if(pick.status!=="FOUND")return{status:pick.status,selection:s,candidates:pick.candidates||[]};const e=pick.event;if(started(e))return{status:"STARTED",selection:s,eventId:e.eventId,startTime:e.estimateStartTime,homeTeam:e.homeTeamName,awayTeam:e.awayTeamName};const m=chooseMarket(s.market,e.markets||[],s.pick);if(m.status!=="FOUND")return{status:m.status,selection:s,event:e,candidates:m.candidates||[],reason:"market_not_found"};const o=chooseOutcome(s.pick,m.market.outcomes||[]);if(o.status!=="FOUND")return{status:o.status,selection:s,event:e,market:m.market,candidates:o.candidates||[],reason:"outcome_not_found"};if(String(m.market.status||"").toLowerCase().includes("suspend")||o.outcome.isActive===false||o.outcome.isActive===0)return{status:"SUSPENDED",selection:s,eventId:e.eventId,marketId:m.market.id,outcomeId:o.outcome.id,liveOdds:Number(o.outcome.odds)||0};const live=Number(o.outcome.odds)||0,old=Number(s.odds)||0;if(live<=0)return{status:"UNAVAILABLE",selection:s,eventId:e.eventId,marketId:m.market.id,outcomeId:o.outcome.id,reason:"odds_not_available"};return{status:old&&Math.abs(live-old)>.0001?"ODDS_CHANGED":"MATCHED",selection:s,eventId:e.eventId,homeTeam:e.homeTeamName,awayTeam:e.awayTeamName,startTime:e.estimateStartTime||null,marketId:m.market.id,marketName:m.market.desc||"",marketStatus:m.market.status||null,specifier:m.market.specifier||null,outcomeId:o.outcome.id,outcomeName:o.outcome.desc||"",currentOdds:live,liveOdds:live,suppliedOdds:old}}catch(e){return{status:e.message==="CORS_OR_NETWORK"?"UNAVAILABLE":"FAILED",selection:s,reason:e.message}}},async buildBooking(results,dbg){const bad=results.filter(r=>r.status!=="MATCHED"&&r.status!=="ODDS_CHANGED");if(bad.length)return{success:false,message:"Fix failed selections before building the booking code.",failed:bad};const selections=results.map(r=>({eventId:r.eventId,marketId:r.marketId,specifier:r.specifier??undefined,outcomeId:r.outcomeId}));const b=await req(BASE+"/api/ng/orders/share",{method:"POST",body:JSON.stringify({selections})},dbg);const d=b?.data||{};if(b?.bizCode!==10000||!d.shareCode)return{success:false,message:"SportyBet did not return a booking code.",response:b};return{success:true,bookingCode:String(d.shareCode),shareUrl:d.shareURL||"",deadline:d.deadline||null,outcomes:d.outcomes||[],unavailableOutcomes:d.unavailableOutcomes||[]}},async getBooking(code,dbg){return req(BASE+"/api/ng/orders/share/"+encodeURIComponent(code),{},dbg)}};
-export async function searchEvents(sport,dbg){return upcoming(sport,dbg)}
-export async function getEventDetails(eventId,sport,dbg){const all=await upcoming(sport,dbg);return all.find(e=>e.eventId===eventId)||null}
-export function findMarket(requested,markets,pick){return chooseMarket(requested,markets,pick)}
-export function findOutcome(pick,outcomes){return chooseOutcome(pick,outcomes)}
+const API_BASE = "https://bet-slip-assistant.onrender.com";
+
+async function post(path, body) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP_${response.status}`);
+  }
+
+  return response.json();
+}
+
+export default {
+  name: "SportyBet Backend",
+
+  async validateSelection(selection, dbg) {
+    try {
+      const result = await post("/api/validate", {
+        selections: [selection]
+      });
+
+      return result.results?.[0] || {
+        status: "FAILED",
+        selection,
+        reason: "empty_response"
+      };
+    } catch (e) {
+      return {
+        status: "FAILED",
+        selection,
+        reason: e.message
+      };
+    }
+  },
+
+  async buildBooking(results, dbg) {
+    try {
+      return await post("/api/build", {
+        selections: results
+      });
+    } catch (e) {
+      return {
+        success: false,
+        message: e.message
+      };
+    }
+  },
+
+  async getBooking(code) {
+    return {
+      success: false,
+      message: "Not implemented"
+    };
+  }
+};
+
+export async function searchEvents() {
+  return [];
+}
+
+export async function getEventDetails() {
+  return null;
+}
+
+export function findMarket() {
+  return null;
+}
+
+export function findOutcome() {
+  return null;
+}
