@@ -7,6 +7,9 @@ import {
 
 const BASE = "https://www.sportybet.com";
 
+const MARKETS =
+  "1,10,11,14,16,18,21,26,29,36,45,47,60,219,223,225,227,228,60100";
+
 async function sportyFetch(url) {
   const r = await fetch(url, {
     headers: {
@@ -29,23 +32,25 @@ async function upcomingEvents(sport) {
     throw new Error("UNSUPPORTED_SPORT");
   }
 
-  const url =
-    `${BASE}/api/ng/factsCenter/pcUpcomingEvents` +
-    `?sportId=${encodeURIComponent(sid)}` +
-    `&marketId=1` +
-    `&pageSize=100` +
-    `&pageNum=1` +
-    `&todayGames=false` +
-    `&timeline=720` +
-    `&_t=${Date.now()}`;
-
-  const body = await sportyFetch(url);
-
   const events = [];
 
-  for (const t of body?.data?.tournaments || []) {
-    for (const e of t.events || []) {
-      events.push(e);
+  for (let page = 1; page <= 3; page++) {
+    const url =
+      `${BASE}/api/ng/factsCenter/pcUpcomingEvents` +
+      `?sportId=${encodeURIComponent(sid)}` +
+      `&marketId=${MARKETS}` +
+      `&pageSize=100` +
+      `&pageNum=${page}` +
+      `&todayGames=false` +
+      `&timeline=720` +
+      `&_t=${Date.now()}`;
+
+    const body = await sportyFetch(url);
+
+    for (const t of body?.data?.tournaments || []) {
+      for (const e of t.events || []) {
+        events.push(e);
+      }
     }
   }
 
@@ -87,7 +92,9 @@ export async function validateSelection(selection) {
       return {
         status: "UNAVAILABLE",
         selection,
-        reason: "market_not_found"
+        reason: "market_not_found",
+        availableMarkets:
+          (event.markets || []).map(m => m.desc)
       };
     }
 
@@ -100,7 +107,9 @@ export async function validateSelection(selection) {
       return {
         status: "UNAVAILABLE",
         selection,
-        reason: "outcome_not_found"
+        reason: "outcome_not_found",
+        availableOutcomes:
+          (marketMatch.market.outcomes || []).map(o => o.desc)
       };
     }
 
