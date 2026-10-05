@@ -149,8 +149,9 @@ export async function buildBooking(results = []) {
     const selections = results
       .filter(
         r =>
-          r.status === "MATCHED" ||
-          r.status === "ODDS_CHANGED"
+          r.eventId &&
+          r.marketId &&
+          r.outcomeId
       )
       .map(r => ({
         eventId: r.eventId,
@@ -166,7 +167,7 @@ export async function buildBooking(results = []) {
     }
 
     const response = await fetch(
-      "https://www.sportybet.com/api/ng/orders/share?throwInvalidEvent=1",
+      `${BASE}/api/ng/orders/share?throwInvalidEvent=1`,
       {
         method: "POST",
         headers: {
@@ -183,23 +184,29 @@ export async function buildBooking(results = []) {
 
     const body = await response.json();
 
+    console.log(
+      "SPORTYBET SHARE RESPONSE:",
+      JSON.stringify(body, null, 2)
+    );
+
     if (
-      body?.bizCode !== 10000 ||
-      !body?.data?.shareCode
+      body?.bizCode === 10000 &&
+      body?.data?.shareCode
     ) {
       return {
-        success: false,
-        message: "SportyBet rejected booking.",
-        response: body
+        success: true,
+        bookingCode: body.data.shareCode,
+        shareCode: body.data.shareCode,
+        shareUrl: body.data.shareURL,
+        deadline: body.data.deadline,
+        debug: body
       };
     }
 
     return {
-      success: true,
-      bookingCode: body.data.shareCode,
-      shareUrl: body.data.shareURL,
-      deadline: body.data.deadline,
-      outcomes: body.data.outcomes || []
+      success: false,
+      message: "SportyBet rejected booking.",
+      debug: body
     };
   } catch (e) {
     return {
@@ -208,5 +215,3 @@ export async function buildBooking(results = []) {
     };
   }
 }
-
-
