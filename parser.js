@@ -1,0 +1,1 @@
+export function normalizeSlip(raw){if(raw.trim().startsWith('{')) return JSON.parse(raw);const slip={bookmaker:'SportyBet',targetOdds:30,stake:1000,selections:[]};raw.split('\n').forEach(l=>{if(l.includes('|')){const p=l.split('|').map(x=>x.trim());if(p.length>=6)slip.selections.push({sport:p[1],event:p[2],market:p[3],pick:p[4],odds:Number(p[5])});}});return slip;}
