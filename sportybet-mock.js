@@ -1,1 +1,0 @@
-export default{async validateSelection(s){return {status:'MATCHED',selection:s,liveOdds:s.odds,eventId:'mock'}},async buildBooking(){return {success:true,bookingCode:'MOCK123',shareUrl:'https://www.sportybet.com/ng/?shareCode=MOCK123'}}}
