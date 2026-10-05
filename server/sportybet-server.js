@@ -123,6 +123,10 @@ export async function validateSelection(selection) {
       selection,
 
       eventId: event.eventId,
+      estimateStartTime: event.estimateStartTime,
+      sportId: event?.sport?.id || null,
+      parentBetBuilderMarketId:
+        event.parentBetBuilderMarketId || "",
 
       homeTeam: event.homeTeamName,
       awayTeam: event.awayTeamName,
@@ -154,9 +158,13 @@ export async function buildBooking(results = []) {
           r.outcomeId
       )
       .map(r => ({
+        estimateStartTime: r.estimateStartTime,
         eventId: r.eventId,
         marketId: String(r.marketId),
-        outcomeId: String(r.outcomeId)
+        outcomeId: String(r.outcomeId),
+        parentBetBuilderMarketId:
+          r.parentBetBuilderMarketId || "",
+        sportId: r.sportId
       }));
 
     if (!selections.length) {
@@ -215,3 +223,4 @@ export async function buildBooking(results = []) {
     };
   }
 }
+
